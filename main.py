@@ -5,7 +5,6 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 import argparse
 import logging
 import os
-from concurrent.futures import ThreadPoolExecutor
 
 logging.basicConfig(level=logging.INFO)
 
@@ -43,8 +42,8 @@ def get_pipe():
             model=model,
             tokenizer=processor.tokenizer,
             feature_extractor=processor.feature_extractor,
-            chunk_length_s=30,  # Enable chunked long-form transcription
-            batch_size=16,  # Set batch size based on your device
+            chunk_length_s=60,  # Enable chunked long-form transcription
+            batch_size=os.cpu_count(), # Use all available CPU cores
             torch_dtype=torch_dtype,
             device=device
         )
@@ -86,23 +85,27 @@ def main():
         logging.disable(logging.INFO)
 
     if args.audio_path:
+        output_dir = args.output_path if args.output_path else args.audio_path
         # Check if the provided path is a directory or a file
         if os.path.isdir(args.audio_path):
             # If it's a directory, transcribe all audio files in the directory
             audio_files = [
                 os.path.join(args.audio_path, filename)
                 for filename in os.listdir(args.audio_path)
-                if filename.endswith((".mp3", ".wav", ".flac", ".ogg"))
+                if filename.lower().endswith((".mp3", ".wav", ".flac", ".ogg", ".m4a"))
             ]
-            transcribe_audio(audio_files, args.output_path, args.silent)
+            transcribe_audio(audio_files, output_dir, args.silent)
         else:
             # If it's a single file, transcribe it
-            transcribe_audio([args.audio_path], args.output_path, args.silent)
+            transcribe_audio([args.audio_path], output_dir, args.silent)
     else:
         run_on_dataset()
 
 
 def transcribe_audio(file_paths, output_dir=None, silent=False):
+    if len(file_paths) == 0:
+        logging.error("No audio files found")
+        return
     pipe = get_pipe()
     results = pipe(file_paths, batch_size=len(file_paths))
 
