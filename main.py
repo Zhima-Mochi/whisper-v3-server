@@ -6,7 +6,6 @@ import argparse
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
-import soundfile as sf
 
 logging.basicConfig(level=logging.INFO)
 
@@ -44,6 +43,8 @@ def get_pipe():
             model=model,
             tokenizer=processor.tokenizer,
             feature_extractor=processor.feature_extractor,
+            chunk_length_s=30,  # Enable chunked long-form transcription
+            batch_size=16,  # Set batch size based on your device
             torch_dtype=torch_dtype,
             device=device
         )
@@ -70,7 +71,7 @@ def main():
         "-o",
         "--output-path",
         type=str,
-        help="Path to save the transcribed text",
+        help="Directory to save the transcribed text",
     )
 
     parser.add_argument(
@@ -101,14 +102,17 @@ def main():
         run_on_dataset()
 
 
-def transcribe_audio(file_paths, output_path=None, silent=False):
+def transcribe_audio(file_paths, output_dir=None, silent=False):
     pipe = get_pipe()
     results = pipe(file_paths, batch_size=len(file_paths))
+
+    if output_dir:
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
     for file_path, result in zip(file_paths, results):
-        if output_path:
-            output_file = output_path
-            if os.path.isdir(output_path):
-                output_file = os.path.join(output_path, f"{os.path.basename(file_path)}.txt")
+        if output_dir:
+            output_file = os.path.join(output_dir, f"{os.path.basename(file_path)}.txt")
             with open(output_file, "w") as f:
                 f.write(result["text"])
             logging.info(f"Transcribed text saved to {output_file}")
