@@ -4,6 +4,9 @@ import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 import argparse
 import logging
+import os
+from concurrent.futures import ThreadPoolExecutor
+import soundfile as sf
 
 logging.basicConfig(level=logging.INFO)
 
@@ -60,7 +63,7 @@ def main():
         "-a",
         "--audio-path",
         type=str,
-        help="Path to the audio file to transcribe",
+        help="Path to the audio file or directory to transcribe",
     )
 
     parser.add_argument(
@@ -82,22 +85,41 @@ def main():
         logging.disable(logging.INFO)
 
     if args.audio_path:
-        with open(args.audio_path, "rb") as f:
-            data = f.read()
-        transcribe_audio(data, args.output_path)
+        # Check if the provided path is a directory or a file
+        if os.path.isdir(args.audio_path):
+            # If it's a directory, transcribe all audio files in the directory
+            with ThreadPoolExecutor() as executor:
+                futures = []
+                for filename in os.listdir(args.audio_path):
+                    # Ensure it's an audio file (e.g., by checking the extension)
+                    if filename.endswith((".mp3", ".wav", ".flac", ".ogg")):
+                        file_path = os.path.join(args.audio_path, filename)
+                        output_file = None
+
+                        # If output_path is a directory, save each transcription to a separate file
+                        if args.output_path and os.path.isdir(args.output_path):
+                            output_file = os.path.join(args.output_path, f"{filename}.txt")
+
+                        futures.append(executor.submit(transcribe_audio, file_path, output_file, args.silent))
+                for future in futures:
+                    future.result()
+        else:
+            # If it's a single file, transcribe it
+            transcribe_audio(args.audio_path, args.output_path, args.silent)
     else:
         run_on_dataset()
 
 
-def transcribe_audio(data, output_path=None):
+def transcribe_audio(file_path, output_path=None, silent=False):
     pipe = get_pipe()
-    result = pipe()(data, return_timestamps=True)
-    if output_path:
-        with open(output_path, "w") as f:
-            f.write(result["text"])
-            logging.info(f"Transcribed text saved to {output_path}")
-    else:
-        print(result["text"])
+    with sf.SoundFile(file_path) as f:
+        for block in f.blocks(blocksize=1024):
+            result = pipe()(block, return_timestamps=True)
+            if output_path:
+                with open(output_path, "a") as f:
+                    f.write(result["text"])
+                if not silent:
+                    print(result["text"])
 
 
 def run_on_dataset():
