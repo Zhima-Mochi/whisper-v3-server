@@ -7,6 +7,7 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
+
 def get_pipe():
     pipe = None
 
@@ -15,14 +16,14 @@ def get_pipe():
         if pipe:
             logging.info("Reusing existing pipeline")
             return pipe(*args, **kwargs)
-        
+
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
         logging.info(f"Using device: {device}")
 
         torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
         model_id = "openai/whisper-large-v3"
-        
+
         logging.info(f"Loading model: {model_id}")
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
             model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
@@ -41,12 +42,12 @@ def get_pipe():
             tokenizer=processor.tokenizer,
             feature_extractor=processor.feature_extractor,
             torch_dtype=torch_dtype,
-            device=device,
+            device=device
         )
         logging.info("Pipeline created")
-        
+
         return pipe(*args, **kwargs)
-    
+
     return f
 
 
@@ -78,7 +79,7 @@ def main():
     args = parser.parse_args()
 
     if args.silent:
-        logging.disable(logging.CRITICAL)
+        logging.disable(logging.INFO)
 
     if args.audio_path:
         with open(args.audio_path, "rb") as f:
@@ -87,7 +88,8 @@ def main():
     else:
         run_on_dataset()
 
-def transcribe_audio(data, output_path = None):
+
+def transcribe_audio(data, output_path=None):
     pipe = get_pipe()
     result = pipe()(data, return_timestamps=True)
     if output_path:
@@ -96,7 +98,7 @@ def transcribe_audio(data, output_path = None):
             logging.info(f"Transcribed text saved to {output_path}")
     else:
         print(result["text"])
-        
+
 
 def run_on_dataset():
     logging.info("Running on the LibriSpeech dataset")
