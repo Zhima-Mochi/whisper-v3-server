@@ -5,6 +5,10 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 import argparse
 import logging
 import os
+import warnings
+
+# Suppress the specific warning about PipelineChunkIterator length
+warnings.filterwarnings("ignore", category=UserWarning, message="Length of IterableDataset")
 
 logging.basicConfig(level=logging.INFO)
 
@@ -42,7 +46,7 @@ def get_pipe():
             model=model,
             tokenizer=processor.tokenizer,
             feature_extractor=processor.feature_extractor,
-            chunk_length_s=60,  # Enable chunked long-form transcription
+            chunk_length_s=30,  # Enable chunked long-form transcription
             batch_size=os.cpu_count(), # Use all available CPU cores
             torch_dtype=torch_dtype,
             device=device
