@@ -10,6 +10,7 @@ from constant.dataset_util import get_librispeech_sample
 
 logging.basicConfig(level=logging.INFO)
 
+
 def main():
     args = parse_args()
     if args.silent:
@@ -36,20 +37,32 @@ def main():
         return 1
 
     # Convert and output results
-    output_text = convert_pipeline_output(results, args.output_format, args.output_file, args.return_timestamps)
-    write_output(output_text, args.output_dir, args.output_format, args.output_file)
+    output_text = convert_pipeline_output(
+        results, args.output_format, args.return_timestamps)
+    
+    output_file = args.output_file
+    if output_file is None:
+        print(output_text)
+        return 0
+    output_dir = args.output_dir
+    if output_dir is None:
+        output_dir = "."
+    write_output(output_text, output_dir, output_file)
+    if args.print_output:
+        print(output_text)
+
     return 0
 
 
-def convert_pipeline_output(pipe_result, output_format, output_file, return_timestamps=False):
+def convert_pipeline_output(pipe_result, output_format, return_timestamps=False):
     """
-    Convert the Hugging Face pipeline output into the specified format (txt, srt, json).
+    Convert the Hugging Face pipeline output into the specified format (text, srt, json).
     """
     if isinstance(pipe_result, dict):
         pipe_result = [pipe_result]
-    
+
     converter = get_converter(output_format)
-    return converter.convert(pipe_result, return_timestamps, output_file)
+    return converter.convert(pipe_result, return_timestamps)
 
 
 if __name__ == "__main__":

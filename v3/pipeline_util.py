@@ -10,7 +10,6 @@ def get_asr_pipeline(
     device: str = "cuda",
     batch_size: int = 1,
     task: str = "transcribe",
-    language: str = "auto",
     return_timestamps: bool = False,
     chunk_length_s: int = 30
 ):
@@ -21,7 +20,6 @@ def get_asr_pipeline(
     :param device: 'cuda' or 'cpu'. If 'cuda' is selected but not available, it falls back to CPU.
     :param batch_size: Number of samples to process at once.
     :param task: 'transcribe' or 'translate'. 
-    :param language: Language code for transcription or target language for translation. Use 'auto' to let the model detect.
     :param timestamps: Whether to include timestamps in the output.
     :param chunk_length_s: Chunk length in seconds for long-form audio.
     :return: A HuggingFace pipeline object configured for ASR.
@@ -60,40 +58,21 @@ def get_asr_pipeline(
         logging.error(f"Error loading processor for model '{model_name}': {e}")
         raise e
 
-    # Validate task and language
-    task = ASRTask(task, language)
+    # Validate task
+    task = ASRTask(task)
 
-    # Define generation kwargs based on task and language
-    generation_kwargs = {}
+    # Create pipeline
+    pipe = pipeline(
+        task=task.pipeline_task,
+        model=model,
+        tokenizer=processor.tokenizer,
+        feature_extractor=processor.feature_extractor,
+        batch_size=batch_size,
+        torch_dtype=torch_dtype,
+        device=device,
+        chunk_length_s=chunk_length_s,
+        return_timestamps=return_timestamps
+    )
 
-    if task == ASRTask.TRANSLATE:
-        generation_kwargs["forced_decoder_ids"] = processor.get_decoder_prompt_ids(
-            language=language,
-            task=task
-        )
-        logging.info(f"Set translation target language to '{language}'.")
-    elif task == ASRTask.TRANSCRIBE and language != "auto":
-        generation_kwargs["language"] = language
-        logging.info(f"Set transcription source language to '{language}'.")
-
-    logging.info("Creating pipeline...")
-    # Initialize ASR pipeline
-    try:
-        asr_pipeline = pipeline(
-            task.pipeline_task,  # Use pipeline_task from ASRTask class
-            model=model,
-            tokenizer=processor.tokenizer,
-            feature_extractor=processor.feature_extractor,
-            chunk_length_s=chunk_length_s,
-            batch_size=batch_size,
-            torch_dtype=torch_dtype,
-            device=device_str,
-            return_timestamps=return_timestamps,
-        )
-        logging.info("ASR pipeline initialized successfully.")
-    except Exception as e:
-        logging.error(f"Failed to initialize ASR pipeline: {e}")
-        raise e
-    logging.info("Pipeline created.")
-    return asr_pipeline
+    return pipe
 

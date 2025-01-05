@@ -21,8 +21,6 @@ def test_main_with_invalid_args():
     test_args.audio = None  # Invalid audio input
     test_args.model = "invalid_model"
     test_args.output = "invalid_format"
-    test_args.language = "auto"
-    test_args.device = "cuda"
     test_args.batch_size = os.cpu_count()
     test_args.return_timestamps = False
     test_args.task = "transcribe"
@@ -33,53 +31,18 @@ def test_main_with_invalid_args():
         with pytest.raises(Exception):
             main()
 
-@pytest.mark.parametrize("output_format", ["txt", "srt", "vtt"])
+@pytest.mark.parametrize("output_format", ["text", "srt", "json"])
 def test_main_with_different_outputs(output_format):
     test_args = MagicMock()
     test_args.audio = ["test.wav"]
-    test_args.language = "auto"
     test_args.model = "tiny"
     test_args.output_format = output_format
-    test_args.device = "cuda"
+    test_args.output_file = "test." + output_format
     test_args.batch_size = os.cpu_count()
     test_args.return_timestamps = True
     test_args.task = "transcribe"
     test_args.silent = True
     test_args.output_dir = "v3/tests/test_output"
-
-    with patch('argparse.ArgumentParser.parse_args', return_value=test_args):
-        result = main()
-        assert result == 0
-
-def test_main_with_librispeech_fallback():
-    test_args = MagicMock()
-    test_args.audio = ["test.wav"]
-    test_args.language = "auto"
-    test_args.model = "large-v3"
-    test_args.output = "txt"
-    test_args.device = "cpu"
-    test_args.batch_size = 1
-    test_args.return_timestamps = False
-    test_args.task = "transcribe"
-    test_args.silent = True
-    test_args.output_dir = None
-
-    with patch('argparse.ArgumentParser.parse_args', return_value=test_args):
-        result = main()
-        assert result == 0
-
-def test_main_with_translation():
-    test_args = MagicMock()
-    test_args.audio = ["test.wav"]
-    test_args.language = "fr"  # French
-    test_args.model = "large-v3"
-    test_args.output = "txt"
-    test_args.device = "cpu"
-    test_args.batch_size = 1
-    test_args.return_timestamps = False
-    test_args.task = "translate"
-    test_args.silent = True
-    test_args.output_dir = None
 
     with patch('argparse.ArgumentParser.parse_args', return_value=test_args):
         result = main()

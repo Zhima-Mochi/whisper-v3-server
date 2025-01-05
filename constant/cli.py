@@ -7,23 +7,23 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Transcribe/Translate audio using the Whisper model."
+        description="Transcribe audio using the Whisper model."
     )
     parser.add_argument(
         "-a", "--audio", nargs="+",
         help="Path(s) to audio file(s) or directories containing audio files."
     )
     parser.add_argument(
-        "-l", "--language", type=str, default="auto",
-        help="Specify language (default: auto-detect)."
-    )
-    parser.add_argument(
         "-m", "--model", type=str, default="large-v3",
         help="Model size (tiny, base, small, medium, large-v3)."
     )
     parser.add_argument(
-        "-f", "--output_format", type=str, default="stdout",
-        help="Output format (txt, srt, json, stdout)."
+        "-f", "--output_format", type=str, default="text",
+        help="Output format (text, srt, json)."
+    )
+    parser.add_argument(
+        "--print_output", action="store_true",
+        help="Print the output to the console."
     )
     parser.add_argument(
         "-d", "--device", type=str, default="cuda",
@@ -39,7 +39,7 @@ def parse_args():
     )
     parser.add_argument(
         "-t", "--task", type=str, default="transcribe",
-        help="Task to perform (transcribe, translate)."
+        help="Task to perform (transcribe only)."
     )
     parser.add_argument(
         "-s", "--silent", action="store_true",

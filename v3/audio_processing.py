@@ -30,19 +30,11 @@ def gather_audio_files(paths: List[str]) -> List[str]:
     return all_files
 
 
-def write_output(output_text: str, output_dir: Optional[str], output_format: str, output_file: Optional[str]) -> None:
+def write_output(output_text: str, output_dir: Optional[str], output_file: str) -> None:
     """Write output to file or print to console."""
-    if output_format == "stdout":
-        print(output_text)
-        return 0
-    else:
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        if output_file:
-            out_path = os.path.join(output_dir, output_file)
-        else:
-            out_path = os.path.join(output_dir, f"output.{output_format}")
-        with open(out_path, "w", encoding="utf-8") as f:
-            f.write(output_text)
-        logging.info(f"Saved output to {out_path}")
-        return 0
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    out_path = os.path.join(output_dir, output_file)
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(output_text)
+    logging.info(f"Saved output to {out_path}")

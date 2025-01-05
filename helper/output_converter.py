@@ -36,11 +36,14 @@ class StdoutConverter(OutputConverter):
     def convert(self, pipe_result, timestamps=False):
         return TextConverter().convert(pipe_result, timestamps)
 
+converters = {
+    "text": TextConverter(),
+    "json": JsonConverter(),
+    "srt": SrtConverter(),
+    "stdout": StdoutConverter()
+}
+
 def get_converter(output_format):
-    converters = {
-        "txt": TextConverter(),
-        "json": JsonConverter(),
-        "srt": SrtConverter(),
-        "stdout": StdoutConverter()
-    }
-    return converters.get(output_format, TextConverter()) 
+    if output_format not in converters:
+        raise ValueError(f"Invalid output format: {output_format}. Please choose from: {', '.join(converters.keys())}")
+    return converters.get(output_format)

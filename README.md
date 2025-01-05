@@ -44,11 +44,11 @@ Options:
   -a, --audio        Path to audio file(s)
   -l, --language     Specify language (default: auto-detect)
   -m, --model        Model size (tiny, base, small, medium, large-v3)
-  -o, --output       Output format (txt, srt, vtt, json)
+  -o, --output       Output format (text, srt, json)
   -d, --device       Device to use (cuda, cpu)
   -b, --batch_size   Batch size for processing
   -t, --timestamps   Include timestamps in output
-  --task            Task to perform (transcribe, translate)
+  --task            Task to perform (transcribe)
 ```
 
 ### Examples
@@ -63,12 +63,7 @@ Options:
    whisper-v3 -a audio.mp3 -o srt
    ```
 
-3. **Translate to English**
-   ```bash
-   whisper-v3 -a foreign.mp3 --task translate
-   ```
-
-4. **Batch Processing**
+3. **Batch Processing**
    ```bash
    whisper-v3 -a folder/*.mp3 -b 4
    ```
