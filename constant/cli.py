@@ -22,8 +22,8 @@ def parse_args():
         help="Model size (tiny, base, small, medium, large-v3)."
     )
     parser.add_argument(
-        "-o", "--output", type=str, default="txt",
-        help="Output format (txt, srt, json)."
+        "-f", "--output_format", type=str, default="stdout",
+        help="Output format (txt, srt, json, stdout)."
     )
     parser.add_argument(
         "-d", "--device", type=str, default="cuda",
@@ -34,19 +34,23 @@ def parse_args():
         help="Batch size for processing (default: number of CPU cores)."
     )
     parser.add_argument(
-        "-t", "--timestamps", action="store_true",
+        "--return_timestamps", action="store_true",
         help="Include timestamps in the output if supported."
     )
     parser.add_argument(
-        "--task", type=str, default="transcribe",
+        "-t", "--task", type=str, default="transcribe",
         help="Task to perform (transcribe, translate)."
     )
     parser.add_argument(
-        "--silent", action="store_true",
+        "-s", "--silent", action="store_true",
         help="Do not print transcription to console."
     )
     parser.add_argument(
-        "--output_dir", type=str, default=None,
+        "-o", "--output_dir", type=str, default=None,
         help="Directory to save the final output file(s)."
+    )
+    parser.add_argument(
+        "-of", "--output_file", type=str, default=None,
+        help="File to save the final output to."
     )
     return parser.parse_args()

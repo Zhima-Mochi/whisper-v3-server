@@ -2,7 +2,7 @@ import logging
 import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from typing import Optional
-from constant.asr_config import ASRValidator, ASRTask
+from constant.asr_config import ASRTask
 
 
 def get_asr_pipeline(
@@ -11,7 +11,7 @@ def get_asr_pipeline(
     batch_size: int = 1,
     task: str = "transcribe",
     language: str = "auto",
-    timestamps: bool = False,
+    return_timestamps: bool = False,
     chunk_length_s: int = 30
 ):
     """
@@ -32,6 +32,7 @@ def get_asr_pipeline(
             "CUDA is not available on this system. Falling back to CPU.")
         device = "cpu"
     device_str = "cuda:0" if device == "cuda" else "cpu"
+    logging.info(f"Using device: {device_str}")
 
     # Set appropriate torch dtype for GPU vs. CPU
     torch_dtype = torch.float16 if device_str.startswith(
@@ -60,8 +61,7 @@ def get_asr_pipeline(
         raise e
 
     # Validate task and language
-    task = ASRValidator.validate_task(task)
-    language = ASRValidator.validate_language(task, language)
+    task = ASRTask(task, language)
 
     # Define generation kwargs based on task and language
     generation_kwargs = {}
@@ -80,7 +80,7 @@ def get_asr_pipeline(
     # Initialize ASR pipeline
     try:
         asr_pipeline = pipeline(
-            "automatic-speech-recognition",
+            task.pipeline_task,  # Use pipeline_task from ASRTask class
             model=model,
             tokenizer=processor.tokenizer,
             feature_extractor=processor.feature_extractor,
@@ -88,13 +88,12 @@ def get_asr_pipeline(
             batch_size=batch_size,
             torch_dtype=torch_dtype,
             device=device_str,
-            timestamps=timestamps,
-            generation_kwargs=generation_kwargs,
+            return_timestamps=return_timestamps,
         )
         logging.info("ASR pipeline initialized successfully.")
     except Exception as e:
         logging.error(f"Failed to initialize ASR pipeline: {e}")
         raise e
-
     logging.info("Pipeline created.")
     return asr_pipeline
+

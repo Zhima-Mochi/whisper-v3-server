@@ -1,25 +1,37 @@
-from enum import Enum
-from typing import Optional
+import logging
 
-class ASRTask(str, Enum):
+
+class ASRTask:
     TRANSCRIBE = "transcribe"
     TRANSLATE = "translate"
 
-class ASRValidator:
-    @staticmethod
-    def validate_task(task: str) -> str:
-        """Validate and return the ASR task."""
-        try:
-            return ASRTask(task.lower())
-        except ValueError:
-            raise ValueError(f"Unsupported task '{task}'. Choose 'transcribe' or 'translate'.")
+    def __init__(self, task: str, language: str):
+        self.task = task
+        self.language = language
+        self.validate_task()
 
-    @staticmethod
-    def validate_language(task: str, language: str) -> str:
-        """Validate and return the language based on task."""
-        language = language.lower()
-        
-        if task == ASRTask.TRANSLATE and language == "auto":
-            return "english"  # Default for translation
-        
-        return language 
+    def validate_task(self) -> None:
+        """Validate and return the ASR task."""
+        if self.task not in [self.TRANSCRIBE, self.TRANSLATE]:
+            raise ValueError(
+                f"Unsupported task '{self.task}'. Choose 'transcribe' or 'translate'.")
+        if self.task == self.TRANSLATE and self.language == "auto":
+            self.language = "en"
+        elif self.task == self.TRANSCRIBE and self.language != "auto":
+            logging.warning(
+                f"Set transcription source language to '{self.language}'."
+            )
+
+    @property
+    def pipeline_task(self) -> str:
+        """Get the corresponding pipeline task name."""
+        if self.task == self.TRANSCRIBE:
+            return "automatic-speech-recognition"
+        elif self.task == self.TRANSLATE:
+            if self.language == "auto":
+                return "translation"
+            else:
+                return f"translation_auto_to_{self.language}"
+        else:
+            raise ValueError(
+                f"Unsupported task '{self.task}'. Choose 'transcribe' or 'translate'.")

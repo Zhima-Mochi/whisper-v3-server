@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import json
-from constant.output_format import TXT, JSON, SRT
 from helper.srt_util import convert_to_srt
 
 class OutputConverter(ABC):
@@ -10,7 +9,10 @@ class OutputConverter(ABC):
 
 class TextConverter(OutputConverter):
     def convert(self, pipe_result, timestamps=False):
-        return "\n".join(res.get("text", "") for res in pipe_result)
+        if timestamps:
+            return "\n".join(f"{res.get('text', '')} ({res.get('timestamp', (0.0, 0.0))[0]:.3f} --> {res.get('timestamp', (0.0, 0.0))[1]:.3f})" for res in pipe_result)
+        else:
+            return "\n".join(res.get("text", "") for res in pipe_result)
 
 class JsonConverter(OutputConverter):
     def convert(self, pipe_result, timestamps=False):
@@ -29,11 +31,16 @@ class SrtConverter(OutputConverter):
                 }])
             srt_outputs.append(srt_data)
         return "\n\n".join(srt_outputs)
+    
+class StdoutConverter(OutputConverter):
+    def convert(self, pipe_result, timestamps=False):
+        return TextConverter().convert(pipe_result, timestamps)
 
 def get_converter(output_format):
     converters = {
-        TXT: TextConverter(),
-        JSON: JsonConverter(),
-        SRT: SrtConverter()
+        "txt": TextConverter(),
+        "json": JsonConverter(),
+        "srt": SrtConverter(),
+        "stdout": StdoutConverter()
     }
     return converters.get(output_format, TextConverter()) 

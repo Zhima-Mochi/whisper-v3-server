@@ -11,7 +11,7 @@ def process_audio_input(args, pipeline) -> Optional[Any]:
         return None
 
     logging.info(f"Processing {len(all_files)} file(s)...")
-    return pipeline(all_files, batch_size=args.batch_size, return_timestamps=args.timestamps)
+    return pipeline(all_files, batch_size=args.batch_size, return_timestamps=args.return_timestamps)
 
 
 def gather_audio_files(paths: List[str]) -> List[str]:
@@ -30,15 +30,19 @@ def gather_audio_files(paths: List[str]) -> List[str]:
     return all_files
 
 
-def write_output(output_text: str, output_dir: Optional[str], output_format: str, silent: bool) -> None:
+def write_output(output_text: str, output_dir: Optional[str], output_format: str, output_file: Optional[str]) -> None:
     """Write output to file or print to console."""
-    if output_dir:
+    if output_format == "stdout":
+        print(output_text)
+        return 0
+    else:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        out_path = os.path.join(output_dir, f"transcribed.{output_format}")
+        if output_file:
+            out_path = os.path.join(output_dir, output_file)
+        else:
+            out_path = os.path.join(output_dir, f"output.{output_format}")
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(output_text)
         logging.info(f"Saved output to {out_path}")
-    else:
-        if not silent:
-            print(output_text)
+        return 0
