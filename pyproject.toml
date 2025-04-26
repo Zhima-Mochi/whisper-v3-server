@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "whisper-v3-server"
+version = "0.1.0"
+description = ""
+authors = ["Zhima-Mochi <yehgoter@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.115.12"
+uvicorn = "^0.34.2"
+pydub = "^0.25.1"
+pyannote-audio = "^3.3.2"
+transformers = "^4.38.2"
+torch = "^2.2.0"
+accelerate = "^0.30.1"
+python-dotenv = "^1.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

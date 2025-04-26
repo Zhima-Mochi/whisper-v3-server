@@ -1,156 +1,172 @@
-# whisper
+# Whisper-v3 Server: Transcription & Diarization API
 
-A powerful speech-to-text transcription tool based on OpenAI's Whisper Large V3 model.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Features
+A robust backend server for audio processing, delivering **high-accuracy transcription** and **speaker diarization**.  
+Powered by **Whisper** for speech-to-text and **Pyannote** for speaker segmentation, wrapped in a **clean, maintainable** architecture based on **Domain-Driven Design (DDD)** and **Hexagonal Architecture**.
 
-- High-accuracy transcription in 100+ languages
-- Automatic language detection
-- Timestamp generation for each segment
-- GPU acceleration support
-- Batch processing capabilities
-- Format conversion and subtitle generation
+---
 
-## Installation
+## ✨ Key Features
 
-```bash
-# Using pip
-pip install whisper-v3
+- **High-Accuracy Transcription:** Powered by OpenAI's Whisper models.
+- **Speaker Diarization:** Identify *who* spoke *when* using Pyannote models.
+- **Segmented Results:** Provides speaker-separated transcriptions with precise timestamps.
+- **Asynchronous Workflow:** Upload audio first, transcribe later using a `clip_id`.
+- **Clean Architecture:** Follows DDD and Hexagonal (Ports & Adapters) principles for scalability and maintainability.
+- **Configurable Models:** Easily switch between Whisper/Pyannote models via environment variables.
 
-# Using conda
-conda install -c conda-forge whisper-v3
-```
+---
 
-## Quick Start
+## 🏛️ Architecture Overview
 
-Basic transcription:
-```bash
-whisper-v3 -a <audio_file>
-```
+This project is structured according to **Domain-Driven Design (DDD)** and **Hexagonal Architecture**:
 
-With language specification:
-```bash
-whisper-v3 -a <audio_file> --language "English"
-```
+| Layer | Responsibility |
+|:-----|:---------------|
+| **Domain** | Core business rules and entities, fully independent. |
+| **Application** | Coordinates use cases by orchestrating domain logic. |
+| **Adapters** | Interfaces connecting the application to the outside world (e.g., API, storage). |
+| **Infrastructure** | Technical implementations (e.g., audio file storage, model inference). |
 
-## Detailed Usage
+This separation ensures **testability**, **flexibility**, and **minimal technology coupling**.
 
-### Command Line Options
+---
 
-```bash
-whisper-v3 [options] <audio_file>
+## 🚀 Getting Started
 
-Options:
-  -a, --audio        Path to audio file(s)
-  -l, --language     Specify language (default: auto-detect)
-  -m, --model        Model size (tiny, base, small, medium, large-v3)
-  -o, --output       Output format (text, srt, json)
-  -d, --device       Device to use (cuda, cpu)
-  -b, --batch_size   Batch size for processing
-  -t, --timestamps   Include timestamps in output
-  --task            Task to perform (transcribe)
-```
+### Prerequisites
 
-### Examples
+- Python 3.10+
+- [Poetry](https://python-poetry.org/) for dependency management
+- A Hugging Face account and API Token (required for Pyannote models)
 
-1. **Basic Transcription**
-   ```bash
-   whisper-v3 -a audio.mp3
-   ```
+---
 
-2. **Specify Output Format**
-   ```bash
-   whisper-v3 -a audio.mp3 -o srt
-   ```
+### Installation & Setup
 
-3. **Batch Processing**
-   ```bash
-   whisper-v3 -a folder/*.mp3 -b 4
-   ```
+1. **Clone the repository:**
+    ```bash
+    git clone https://github.com/Zhima-Mochi/whisper-v3-server.git
+    cd whisper-v3-server
+    ```
 
-## Performance Tips
+2. **Configure environment variables:**
+    ```bash
+    cp .env.example .env
+    ```
+    Edit `.env` and add your Hugging Face token:
+    ```dotenv
+    HUGGINGFACE_TOKEN=hf_YOUR_SECRET_TOKEN
+    ```
 
-1. **GPU Acceleration**
-   - The tool automatically detects and uses your GPU if available
-   - Expect 5-10x faster processing with a CUDA-compatible GPU
-   - Supports both NVIDIA (CUDA) and AMD (ROCm) GPUs
+3. **Install dependencies:**
+    ```bash
+    poetry install
+    ```
 
-2. **Memory Usage**
-   - The model requires ~6GB of storage when first downloaded
-   - For optimal performance, ensure at least 16GB of RAM
-   - Large-v3 model may require up to 12GB VRAM for GPU processing
+4. **Run the application:**
+    ```bash
+    poetry run uvicorn app:app --reload --host 0.0.0.0 --port 8000
+    ```
+    ➔ API available at `http://localhost:8000`
 
-3. **Long Audio Files**
-   - Files are automatically processed in 30-second chunks
-   - This allows for efficient processing of long recordings
-   - Progress bar shows estimated completion time
+---
 
-## Troubleshooting
+### Running with Docker
 
-### Common Issues
+1. **Build the image:**
+    ```bash
+    docker build -t whisper-v3-server .
+    ```
 
-1. **CUDA/GPU Issues**
-   ```bash
-   # Check if CUDA is detected
-   python -c "import torch; print(torch.cuda.is_available())"
-   
-   # Check CUDA version
-   nvidia-smi
-   ```
+2. **Run the container:**
+    ```bash
+    docker run -p 8000:8000 \
+        -e HUGGINGFACE_TOKEN=your_token_here \
+        -v $(pwd)/audio_data:/tmp/voice_server_storage \
+        --name whisper-v3-server \
+        whisper-v3-server
+    ```
+    ➔ API available at `http://localhost:8000`
 
-2. **Memory Errors**
-   - Try reducing `batch_size` if you encounter memory issues
-   - Default batch size uses all CPU cores
-   - Use `--device cpu` if GPU memory is insufficient
+---
 
-3. **Audio Format Issues**
-   - Supported formats: mp3, wav, m4a, flac, ogg
-   - Convert unsupported formats using ffmpeg:
-     ```bash
-     ffmpeg -i input.wma output.mp3
-     ```
+## 📡 API Endpoints
 
-## Advanced Configuration
+All endpoints are under `/api`.
 
-The tool uses these default settings:
-- Chunk length: 30 seconds
-- Batch size: Number of CPU cores
-- Model: whisper-large-v3
-- Device: CUDA if available, CPU otherwise
+---
 
-### Custom Configuration File
+### 1. Upload Audio
 
-Create `config.yaml` in your working directory:
-```yaml
-model: large-v3
-language: auto
-output_format: srt
-batch_size: 4
-device: cuda
-```
+- **POST /api/audio**
+- Upload an audio file (`wav`, `mp3`) for processing.
+- **Response:**
+    ```json
+    {
+      "clip_id": "uuid",
+      "message": "File uploaded successfully.",
+      "file_path": "/tmp/voice_server_storage/yourfile.wav"
+    }
+    ```
 
-## Output Formats
+---
 
-1. **Text (.txt)**
-   - Plain text transcription
-   - Optional timestamps
+### 2. Transcribe Audio
 
-2. **SubRip (.srt)**
-   - Standard subtitle format
-   - Includes timestamps and sequence numbers
+- **POST /api/transcribe?clip_id={clip_id}**
+- Triggers transcription and diarization.
+- **Response:**
+    ```json
+    {
+      "clip_id": "uuid",
+      "segments": [
+        {
+          "speaker": "SPEAKER_01",
+          "start": 0.0,
+          "end": 2.5,
+          "text": "Hello, how are you today?"
+        }
+        // ...
+      ]
+    }
+    ```
 
-3. **WebVTT (.vtt)**
-   - Web-friendly subtitle format
-   - Compatible with HTML5 video
+---
 
-4. **JSON**
-   - Detailed output including:
-     - Word-level timestamps
-     - Confidence scores
-     - Speaker detection (if enabled)
+### 3. Manage Audio Files
 
-## Acknowledgments
+- **GET /api/audio/{clip_id}** → Fetch audio file info
+- **DELETE /api/audio/{clip_id}** → Delete stored audio
 
-- Based on OpenAI's Whisper Large V3 model
-- Uses Hugging Face's Transformers library
-- Community contributions and improvements
+---
+
+## ⚙️ Configuration
+
+Set via `.env` or environment variables:
+
+| Variable | Description | Default | Required |
+|:---------|:-------------|:--------|:--------|
+| `HUGGINGFACE_TOKEN` | Hugging Face token for Pyannote models | `None` | ✅ |
+| `PYANNOTE_MODEL` | Model path for speaker diarization | `pyannote/speaker-diarization` | |
+| `WHISPER_MODEL` | Model path for transcription | `openai/whisper-large-v3` | |
+| `AUDIO_STORAGE_PATH` | Path to store uploaded audio | `/tmp/voice_server_storage` | |
+| `DEVICE` | Device for inference (`cuda`, `cpu`, `mps`) | Auto-detect | |
+| `HF_HOME` | Cache path for Hugging Face | `~/.cache/huggingface` | |
+
+---
+
+## 🛠️ Technology Stack
+
+- **API Framework:** FastAPI
+- **Transcription:** OpenAI Whisper
+- **Speaker Diarization:** Pyannote Audio
+- **Dependency Management:** Poetry
+- **Containerization:** Docker
+
+---
+
+## 📜 License
+
+This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
