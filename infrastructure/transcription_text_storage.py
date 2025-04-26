@@ -9,7 +9,7 @@ from domain.transcription_text import TranscriptionText
 
 
 class FileSystemTranscriptionTextRepository(TranscriptionTextRepository):
-    def __init__(self, base_dir: str = "/tmp/voice_server_storage/transcription_texts"):
+    def __init__(self, base_dir: str = "/tmp/whisper_v3_server_storage/transcription_texts"):
         """Initialize storage with a permanent directory for audio files."""
         self.base_dir = base_dir
         os.makedirs(base_dir, exist_ok=True)

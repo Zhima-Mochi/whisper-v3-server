@@ -84,7 +84,7 @@ This separation ensures **testability**, **flexibility**, and **minimal technolo
     ```bash
     docker run -p 8000:8000 \
         -e HUGGINGFACE_TOKEN=your_token_here \
-        -v $(pwd)/audio_data:/tmp/voice_server_storage \
+        -v $(pwd)/audio_data:/tmp/whisper_v3_server_storage \
         --name whisper-v3-server \
         whisper-v3-server
     ```
@@ -107,7 +107,7 @@ All endpoints are under `/api`.
     {
       "clip_id": "uuid",
       "message": "File uploaded successfully.",
-      "file_path": "/tmp/voice_server_storage/yourfile.wav"
+      "file_path": "/tmp/whisper_v3_server_storage/yourfile.wav"
     }
     ```
 
@@ -151,7 +151,7 @@ Set via `.env` or environment variables:
 | `HUGGINGFACE_TOKEN` | Hugging Face token for Pyannote models | `None` | ✅ |
 | `PYANNOTE_MODEL` | Model path for speaker diarization | `pyannote/speaker-diarization` | |
 | `WHISPER_MODEL` | Model path for transcription | `openai/whisper-large-v3` | |
-| `AUDIO_STORAGE_PATH` | Path to store uploaded audio | `/tmp/voice_server_storage` | |
+| `AUDIO_STORAGE_PATH` | Path to store uploaded audio | `/tmp/whisper_v3_server_storage` | |
 | `DEVICE` | Device for inference (`cuda`, `cpu`, `mps`) | Auto-detect | |
 | `HF_HOME` | Cache path for Hugging Face | `~/.cache/huggingface` | |
 

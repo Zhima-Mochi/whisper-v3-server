@@ -6,7 +6,7 @@ from domain.audio_clip import AudioClip
 from domain.repositories import AudioClipRepository
 
 class FileSystemAudioClipRepository(AudioClipRepository):
-    def __init__(self, base_dir: str = "/tmp/voice_server_storage"):
+    def __init__(self, base_dir: str = "/tmp/whisper_v3_server_storage"):
         """Initialize storage with a permanent directory for audio files."""
         self.base_dir = base_dir
         os.makedirs(base_dir, exist_ok=True)
