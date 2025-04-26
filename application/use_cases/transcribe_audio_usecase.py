@@ -1,8 +1,7 @@
-from domain.audio_clip import AudioClip
 from domain.services import DiarizationService, TranscriptionService
 from domain.speaker_segment import SpeakerSegment
 from domain.repositories import AudioClipRepository, TranscriptionTextRepository
-from adapters.output.result_presenter import APIResultPresenter
+from adapters.input.result_presenter import APIResultPresenter
 
 class TranscribeAudioUseCase:
     def __init__(self, diarization_service: DiarizationService, transcription_service: TranscriptionService, 

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audio Uploader & Transcriber</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+    <style>
+        :root {
+            --primary-start: #7466ce;
+            --primary-end: #7AB8F3;
+            --white-20: rgba(255, 255, 255, 0.2);
+            --white-50: rgba(255, 255, 255, 0.5);
+            --font: 'Poppins', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            background: radial-gradient(circle at top left, var(--primary-start), var(--primary-end));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font);
+        }
+
+        .no-text-cursor {
+            cursor: default;
+            user-select: none;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 480px;
+            padding: 2.5rem;
+            border-radius: 20px;
+            background: var(--white-20);
+            backdrop-filter: blur(14px);
+            text-align: center;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* === FIXED DROP ZONE === */
+        .drop-zone {
+            display: flex;
+            /* full-flex centering */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            /* lock to card width */
+            padding: 1.8rem 1rem;
+            border: 2px dashed var(--white-50);
+            border-radius: 12px;
+            background: var(--white-20);
+            transition: background 0.3s, border-color 0.3s;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+            /* ensure it never overflows */
+            box-sizing: border-box;
+        }
+
+        .drop-zone.hover {
+            background: var(--white-50);
+            border-color: #fff;
+        }
+
+        .drop-zone i {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            color: #eee;
+        }
+
+        .drop-zone p {
+            font-size: 0.95rem;
+            color: #eee;
+            line-height: 1.4;
+        }
+
+        input[type=file] {
+            display: none;
+        }
+
+        /* === END DROP ZONE FIX === */
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: .6rem;
+            padding: .75rem 1.6rem;
+            border: none;
+            border-radius: 30px;
+            background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform .2s, box-shadow .2s;
+            margin: .5rem 0;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0) scale(1);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #uploadResult {
+            margin: .8rem 0 1.2rem;
+            font-size: .95rem;
+            min-height: 1.2em;
+        }
+
+        h2 {
+            margin: 1.5rem 0 .8rem;
+            font-size: 1.25rem;
+        }
+
+        pre {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 1rem;
+            border-radius: 12px;
+            max-height: 240px;
+            overflow-y: auto;
+            text-align: left;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1><i class="fa-solid fa-microphone no-text-cursor"></i> Audio Uploader</h1>
+
+        <label class="drop-zone btn no-text-cursor" id="dropZone">
+            <div id="dropZoneHint">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <p>Drag &amp; drop your audio file<br />or click to browse</p>
+            </div>
+            <div id="dropZoneUploaded" style="display: none;"></div>
+            <input type="file" id="audioFile" accept="audio/*" />
+        </label>
+
+        <button class="btn" id="uploadBtn" disabled><i class="fa-solid fa-upload"></i> Upload Audio</button>
+        <div id="uploadResult"></div>
+        <button class="btn" id="transcribeBtn" style="display:none;"><i class="fa-solid fa-wave-square"></i> Transcribe
+            / Retranscribe</button>
+
+        <h2>Transcription Output</h2>
+        <pre id="transcriptionResult">No transcription yet...</pre>
+        <button class="btn" id="copyBtn" style="display:none;" disabled><i class="fa-solid fa-clipboard"></i> Copy</button>
+    </div>
+
+    <script>
+        const script = document.createElement('script');
+        script.src = 'config.js?t=' + new Date().getTime();
+        document.head.appendChild(script);
+    </script>
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const dropZoneHint = document.getElementById('dropZoneHint');
+        const dropZoneUploaded = document.getElementById('dropZoneUploaded');
+        const fileInput = document.getElementById('audioFile');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const transcribeBtn = document.getElementById('transcribeBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const uploadResult = document.getElementById('uploadResult');
+        const transcriptionResult = document.getElementById('transcriptionResult');
+        let clipId = '';
+
+        // keep drop-zone inside the card
+        ['dragenter', 'dragover'].forEach(e =>
+            dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.add('hover'); })
+        );
+        ['dragleave', 'drop'].forEach(e => {
+            dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.remove('hover'); })
+        });
+        fileInput.addEventListener('change', ev => {
+            if (ev.target.files.length) {
+                fileInput.files = ev.target.files;
+                dropZoneUploaded.style.display = 'block';
+                dropZoneHint.style.display = 'none';
+                dropZoneUploaded.innerHTML = ev.target.files[0].name;
+                uploadBtn.disabled = false;
+            } else {
+                dropZoneHint.style.display = 'block';
+                dropZoneUploaded.style.display = 'none';
+                uploadBtn.disabled = true;
+            }
+            transcribeBtn.disabled = true;
+            transcribeBtn.style.display = 'none';
+            copyBtn.style.display = 'none';
+        });
+        dropZone.addEventListener('drop', ev => {
+            if (ev.dataTransfer.files.length) {
+                fileInput.files = ev.dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+
+        uploadBtn.addEventListener('click', async () => {
+            if (!fileInput.files[0]) return alert('Please select or drop an audio file first.');
+            uploadResult.textContent = 'Uploading…';
+            const fd = new FormData(); fd.append('file', fileInput.files[0]);
+            try {
+                const res = await fetch(`${API_BASE}/api/audio`, { method: 'POST', body: fd });
+                const j = await res.json();
+                if (!res.ok) throw new Error(j.detail || j.message);
+                clipId = j.clip_id; uploadResult.innerHTML = `Uploaded successfully. <br /> Clip ID: ${j.clip_id}`;
+                transcribeBtn.style.display = 'inline-flex';
+                transcribeBtn.disabled = false;
+            } catch (err) {
+                uploadResult.textContent = `Error: ${err.message}`;
+            }
+        });
+
+        transcribeBtn.addEventListener('click', async () => {
+            if (!clipId) return alert('No clip ID available.');
+            transcribeBtn.disabled = true;
+            uploadBtn.disabled = true;
+            dropZone.disabled = true;
+            transcribeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Transcribing…';
+            try {
+                const res = await fetch(`${API_BASE}/api/transcribe?clip_id=${encodeURIComponent(clipId)}`, { method: 'POST' });
+                const j = await res.json();
+                if (!res.ok) throw new Error(j.detail || j.message);
+                transcriptionResult.textContent = JSON.stringify(j.segments, null, 2);
+                copyBtn.style.display = 'inline-flex';
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            } finally {
+                transcribeBtn.disabled = false;
+                transcribeBtn.innerHTML = '<i class="fa-solid fa-wave-square"></i> Transcribe / Retranscribe';
+            }
+        });
+
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(transcriptionResult.textContent);
+                copyBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                setTimeout(() => copyBtn.innerHTML = '<i class="fa-solid fa-clipboard"></i> Copy', 1500);
+            } catch {
+                alert('Copy failed.');
+            }
+        });
+    </script>
+</body>
+
+</html>

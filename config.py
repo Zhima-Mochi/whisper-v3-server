@@ -4,6 +4,10 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# App configuration
+APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
+APP_PORT = int(os.getenv("APP_PORT", 8000))
+
 # PyAnnote and Whisper model configurations
 PYANNOTE_MODEL = os.getenv("PYANNOTE_MODEL", "pyannote/speaker-diarization")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "openai/whisper-large-v3")
