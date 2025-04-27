@@ -1,6 +1,10 @@
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
 class TimeRange:
-    def __init__(self, start: float, end: float):
-        if end < start:
-            raise ValueError("End time must be >= start time")
-        self.start = start
-        self.end = end 
+    start: float
+    end: float
+
+    def __post_init__(self):
+        if self.end < self.start:
+            raise ValueError(f"Invalid TimeRange: end ({self.end}) < start ({self.start})")

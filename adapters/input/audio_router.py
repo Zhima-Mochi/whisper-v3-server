@@ -36,7 +36,6 @@ async def upload_audio(file: UploadFile = File(...)):
     return {
         "clip_id": str(clip.id),
         "message": "File uploaded successfully. Use this clip_id with the /api/transcribe endpoint.",
-        "file_path": clip.file_path
     }
 
 @router.get("/audio/{clip_id}")

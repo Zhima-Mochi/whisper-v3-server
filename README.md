@@ -107,7 +107,6 @@ All endpoints are under `/api`.
     {
       "clip_id": "uuid",
       "message": "File uploaded successfully.",
-      "file_path": "/tmp/whisper_v3_server_storage/yourfile.wav"
     }
     ```
 
@@ -120,7 +119,6 @@ All endpoints are under `/api`.
 - **Response:**
     ```json
     {
-      "clip_id": "uuid",
       "segments": [
         {
           "speaker": "SPEAKER_01",
