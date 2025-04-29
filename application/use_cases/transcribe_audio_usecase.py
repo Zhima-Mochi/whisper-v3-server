@@ -33,6 +33,8 @@ class TranscribeAudioUseCase:
                 # We'll attach the text directly to the segment since we don't have a separate TranscriptionText list
                 seg.text = text
 
+            self.transcription_repository.save(clip_id, segments)
+
             return segments
 
         except Exception as e:
@@ -150,6 +152,13 @@ class TranscribeAudioUseCase:
                 yield seg
             return
 
+        segments = []
         # No existing transcription: run streaming
         async for seg in self.execute_streaming(clip_id):
+            segments.append(seg)
             yield seg
+
+        if segments:
+            # Save the transcription
+            self.transcription_repository.save(clip_id, segments)
+        return

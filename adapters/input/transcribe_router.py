@@ -99,6 +99,33 @@ async def get_transcription(clip_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/transcription/stream/{clip_id}")
+async def get_transcription_stream(clip_id: str):
+    """Stream transcription segments for a clip"""
+    async def generate():
+        try:
+            segments = []
+            async for seg in use_case.get_or_transcribe_streaming(clip_id):
+                segments.append(seg)
+                if len(segments) >= 10:
+                    yield json.dumps({
+                        "segments": segments
+                    }) + "\n"
+                    segments = []
+            if segments:
+                yield json.dumps({
+                    "segments": segments
+                }) + "\n"
+        except Exception as e:
+            yield f"Error: {str(e)}\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="application/x-ndjson",
+        headers={"Content-Disposition": "inline"}
+    )
+
+
 @router.delete("/transcription/{clip_id}")
 async def delete_transcription(clip_id: str):
     """Delete stored transcription for a clip"""
