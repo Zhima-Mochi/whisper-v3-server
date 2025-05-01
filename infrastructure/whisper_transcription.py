@@ -1,33 +1,18 @@
 import os
 from faster_whisper import WhisperModel as FWWhisperModel
 import torch
-from threading import Lock
 
 
 class WhisperModel:
-    _instance = None
-    _lock = Lock()
-
-    def __new__(cls, model_name: str):
-        with cls._lock:
-            if cls._instance is None:
-                cls._instance = super().__new__(cls)
-                cls._instance._initialized = False
-        return cls._instance
-
     def __init__(self, model_name: str):
-        if self._initialized:
-            return
-        self._initialized = True
-
         if torch.cuda.is_available():
             device = "cuda"
             compute_type = "int8_float16"
-            print(f"Using GPU: {torch.cuda.get_device_name(0)}")
+            print(f"WhisperModel: Using GPU: {torch.cuda.get_device_name(0)}")
         else:
             device = "cpu"
             compute_type = "float32"
-            print("CUDA not available, using CPU")
+            print("WhisperModel: CUDA not available, using CPU")
 
         self.model = FWWhisperModel(
             model_name,
