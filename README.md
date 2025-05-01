@@ -168,3 +168,24 @@ Set via `.env` or environment variables:
 ## 📜 License
 
 This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
+
+## 📌 Todo
+
+| Done | Priority | Code  | Milestone                           | Purpose & Key Actions                                                                 |
+|------|----------|-------|--------------------------------------|----------------------------------------------------------------------------------------|
+| ✔    | **1**    | **C-1** | **Max out RTX 2060 single-GPU performance** | *Faster-Whisper small FP16 / int8_float16* → quantize first, then compare baseline; implement singleton model |
+| ⬜    | **2**    | **B-1** | **WebSocket Streaming MVP**         | Add `/ws/stream`: 500 ms Opus frame → Whisper → `send_json`; 10 s ping/heartbeat      |
+| ⬜    | **3**    | **F-1** | **Monitoring + Rate Limiting**      | Prometheus GPU/latency metrics, IP concurrency limit, timeout / 429 response          |
+| ⬜    | **4**    | **D-1** | **Silero-VAD pre-segmentation**     | Silence > 600 ms → flush; 0.2 s overlap → save 20% GPU time                           |
+| ⬜    | **5**    | **B-2** | **HTTP/2 NDJSON Streaming**         | Change `/transcribe/stream` to `application/x-ndjson` + heartbeat lines              |
+| ⬜    | **6**    | **A-2** | **Optional Diarization**            | Add `diarize=true/false` query param; skip Pyannote if not needed                     |
+| ⬜    | **7**    | **C-2** | **GPU↔CPU Pipeline**                | Whisper on GPU → `asyncio.Queue` → Pyannote on CPU; GPU can proceed immediately       |
+| ⬜    | **8**    | **H-1~4** | **Dual-GPU management + Round-Robin** | Scan with NVML, create ModelPool per GPU, load-balanced GPU selection; support 2x 2060/3060 |
+| ⬜    | **9**    | **A-1** | **Single-step API**                 | Add `/upload+transcribe` endpoint with webhook callback; simplify client usage        |
+| ⬜    | **10**   | **H-5~6** | **Run Pyannote on GPU2 / parallel pipeline** | Load Pyannote on idle second GPU; true parallel speaker diarization + transcription   |
+| ⬜    | **11**   | **D-2** | **Incremental output algorithm**    | Only send “new words” to avoid flickering on frontend                                 |
+| ⬜    | **12**   | **E-1** | **Dual-model real-time + accuracy** | Use tiny model for 0.5s partial, small model for 30s final → overwrite result         |
+| ⬜    | **13**   | **H-7~8** | **Batch inference & config-driven pipeline** | Batch=4 under high concurrency; move thresholds to `.env`                             |
+| ⬜    | **14**   | **F-2** | **Opus-compressed streaming**       | Frontend sends `ogg/opus`, backend handles decoding                                   |
+| ⬜    | **15**   | **G-1~2** | **Disconnection recovery / resume & multiprocessing** | Support offset retransmit, `uvicorn --workers 2` + `CUDA_VISIBLE_DEVICES`            |
+| ⬜    | **16**   | **H-9~10** | **Monitoring dashboard + Horizon** | Grafana panels for concurrency / GPU heat; complete horizontal scaling                |
