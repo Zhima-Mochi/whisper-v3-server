@@ -19,4 +19,4 @@ app.include_router(audio_router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host=APP_HOST, port=APP_PORT, reload=True) 
+    uvicorn.run("app:app", host=APP_HOST, port=APP_PORT, reload=False)

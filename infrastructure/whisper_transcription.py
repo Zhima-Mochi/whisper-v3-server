@@ -1,39 +1,53 @@
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+import os
+from faster_whisper import WhisperModel as FWWhisperModel
 import torch
+from threading import Lock
+
 
 class WhisperModel:
+    _instance = None
+    _lock = Lock()
+
+    def __new__(cls, model_name: str):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+                cls._instance._initialized = False
+        return cls._instance
+
     def __init__(self, model_name: str):
-        self.model_name = model_name
-        self.processor = AutoProcessor.from_pretrained(model_name)
-        
-        # Check if CUDA is available and set device accordingly
-        device_str = "cuda" if torch.cuda.is_available() else "cpu"
-        
-        # Set appropriate torch dtype for GPU vs. CPU
-        torch_dtype = torch.float16 if device_str.startswith("cuda") else torch.float32
-        
-        # Load the model with appropriate settings
-        self.model = AutoModelForSpeechSeq2Seq.from_pretrained(
+        if self._initialized:
+            return
+        self._initialized = True
+
+        if torch.cuda.is_available():
+            device = "cuda"
+            compute_type = "int8_float16"
+            print(f"Using GPU: {torch.cuda.get_device_name(0)}")
+        else:
+            device = "cpu"
+            compute_type = "float32"
+            print("CUDA not available, using CPU")
+
+        self.model = FWWhisperModel(
             model_name,
-            torch_dtype=torch_dtype,
-            low_cpu_mem_usage=True
-        )
-        
-        # Move model to the appropriate device
-        self.model = self.model.to(device_str)
-        
-        self.pipe = pipeline(
-            "automatic-speech-recognition",
-            model=self.model,
-            tokenizer=self.processor.tokenizer,
-            feature_extractor=self.processor.feature_extractor,
-            generate_kwargs={"max_new_tokens": 128},
-            chunk_length_s=30,
-            batch_size=1,  # Lower batch size for memory conservation
-            return_timestamps=True,
-            device=device_str
+            device=device,
+            compute_type=compute_type,
+            cpu_threads=os.cpu_count(),
+            num_workers=1
         )
 
     def transcribe(self, audio_path: str, word_timestamps: bool = False) -> dict:
-        result = self.pipe(audio_path, return_timestamps=word_timestamps)
-        return result 
+        segments, info = self.model.transcribe(
+            audio_path,
+            beam_size=5,
+            language=None,
+            vad_filter=True,
+            vad_parameters={"min_silence_duration_ms": 500},
+            word_timestamps=word_timestamps
+        )
+        text = " ".join(seg.text for seg in segments)
+        res = {
+            "text": text,
+        }
+        return res
