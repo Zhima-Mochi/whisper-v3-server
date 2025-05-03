@@ -5,10 +5,12 @@ from domain.repositories import AudioClipRepository, TranscriptionTextRepository
 
 
 class TranscribeAudioUseCase:
-    def __init__(self, diarization_service: DiarizationService, transcription_service: TranscriptionService,
+    def __init__(self, 
+                 chunked_diarization_service: DiarizationService,
+                 transcription_service: TranscriptionService,
                  audio_repository: AudioClipRepository,
                  transcription_repository: TranscriptionTextRepository):
-        self.diarization_service = diarization_service
+        self.chunked_diarization_service = chunked_diarization_service
         self.transcription_service = transcription_service
         self.audio_repository = audio_repository
         self.transcription_repository = transcription_repository
@@ -23,7 +25,7 @@ class TranscribeAudioUseCase:
 
         try:
             # Try to use diarization service if available
-            segments = await self.diarization_service.diarize(clip)
+            segments = await self.chunked_diarization_service.diarize(clip)
 
             # Get transcription for each segment
             for seg in segments:
@@ -116,7 +118,7 @@ class TranscribeAudioUseCase:
 
         try:
             # Stream diarization segments
-            async for seg in self.diarization_service.diarize_stream(clip):
+            async for seg in self.chunked_diarization_service.diarize_stream(clip):
                 # Collect all text chunks into a single string
                 text_chunks = []
                 async for chunk in self.transcription_service.transcribe_stream(

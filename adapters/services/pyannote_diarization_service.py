@@ -9,46 +9,45 @@ from pyannote.audio import Pipeline
 class PyannoteDiarizationService(DiarizationService):
     def __init__(self, pipeline: Pipeline):
         self.pipeline = pipeline
-
+        
     async def diarize(self, clip: AudioClip) -> List[SpeakerSegment]:
         """
-        Perform speaker diarization on an audio clip
-        
-        Raises an exception if the pipeline is not available (None)
+        Diarize the audio clip and return a list of speaker segments.
         """
-        return await self.diarize_async(clip)
+        segments = [seg async for seg in self.diarize_stream(clip)]
+        return segments
 
-    async def diarize_async(self, clip: AudioClip) -> List[SpeakerSegment]:
+    async def diarize_stream(self, clip: AudioClip) -> AsyncGenerator[SpeakerSegment, None]:
         """
-        Asynchronously run the pyannote pipeline in a thread pool,
-        then collect all segments into a list.
+        Stream speaker segments as soon as they are available.
+        Uses a background thread to run the full pipeline, pushing each segment
+        into an asyncio.Queue, which this async generator then yields from.
         """
-        if self.pipeline is None:
-            raise ValueError("Diarization pipeline is not available. See logs for details.")
+        if not self.pipeline:
+            raise ValueError("Diarization pipeline is not available")
 
-        loop = asyncio.get_event_loop()
-        diarization = await loop.run_in_executor(
-            None,
-            lambda: self.pipeline({"audio": clip.file_path})
-        )
+        loop = asyncio.get_running_loop()
+        queue: asyncio.Queue = asyncio.Queue()
 
-        segments: List[SpeakerSegment] = []
-        for turn, _, speaker in diarization.itertracks(yield_label=True):
-            segments.append(
-                SpeakerSegment(
+        def worker():
+            # run full pipeline in thread
+            diarization = self.pipeline({"audio": clip.file_path})
+            for turn, _, speaker in diarization.itertracks(yield_label=True):
+                segment = SpeakerSegment(
                     audio_clip_id=clip.id,
                     start=turn.start,
                     end=turn.end,
                     speaker_label=speaker
                 )
-            )
-        return segments
+                loop.call_soon_threadsafe(queue.put_nowait, segment)
+            # signal completion
+            loop.call_soon_threadsafe(queue.put_nowait, None)
 
-    async def diarize_stream(self, clip: AudioClip) -> AsyncGenerator[SpeakerSegment, None]:
-        """
-        Stream diarization results: first await the full list,
-        then yield one segment at a time.
-        """
-        segments = await self.diarize_async(clip)
-        for seg in segments:
-            yield seg 
+        loop.run_in_executor(None, worker)
+
+        # yield segments as they arrive
+        while True:
+            seg = await queue.get()
+            if seg is None:
+                break
+            yield seg

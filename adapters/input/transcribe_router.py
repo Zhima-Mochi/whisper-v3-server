@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from application.use_cases.transcribe_audio_usecase import TranscribeAudioUseCase
 from adapters.services.pyannote_diarization_service import PyannoteDiarizationService
 from adapters.services.whisper_transcription_service import WhisperTranscriptionService
+from adapters.services.chunked_diarization_service import ChunkedDiarizationService
 from infrastructure.audio_storage import FileSystemAudioClipRepository
 from infrastructure.transcription_text_storage import FileSystemTranscriptionTextRepository
 from config import AUDIO_STORAGE_PATH, TRANSCRIPTION_STORAGE_PATH
@@ -15,8 +16,7 @@ router = APIRouter()
 transcription_service = WhisperTranscriptionService(get_whisper_model())
 
 # initialize diarization service
-diarization_service = PyannoteDiarizationService(get_pyannote_pipeline())
-
+chunked_diarization_service = ChunkedDiarizationService(get_pyannote_pipeline())
 # initialize repositories
 audio_repository = FileSystemAudioClipRepository(AUDIO_STORAGE_PATH)
 transcription_repository = FileSystemTranscriptionTextRepository(
@@ -24,7 +24,7 @@ transcription_repository = FileSystemTranscriptionTextRepository(
 
 # initialize use case with repositories
 use_case = TranscribeAudioUseCase(
-    diarization_service,
+    chunked_diarization_service,
     transcription_service,
     audio_repository,
     transcription_repository
