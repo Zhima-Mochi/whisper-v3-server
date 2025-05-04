@@ -1,5 +1,5 @@
 from typing import AsyncGenerator
-from domain.services import TranscriptionService
+from domain.ports.transcription_port import TranscriptionPort
 from domain.audio_clip import AudioClip
 import os
 from shared.utils.audio_converter import convert_to_wav
@@ -7,7 +7,7 @@ from pydub import AudioSegment
 from infrastructure.whisper_transcription import WhisperModel
 
 
-class WhisperTranscriptionService(TranscriptionService):
+class WhisperTranscriptionService(TranscriptionPort):
     def __init__(self, model: WhisperModel):
         self.model = model
 

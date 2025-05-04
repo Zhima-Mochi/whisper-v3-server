@@ -1,22 +1,21 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from fastapi.responses import JSONResponse
-from infrastructure.audio_storage import FileSystemAudioClipRepository
 from application.use_cases.store_audio_usecase import StoreAudioUseCase
+from infrastructure.di_container import container
 import os
 import uuid
 
-from config import AUDIO_STORAGE_PATH
-
 router = APIRouter()
 
-# initialize repositories
-audio_repository = FileSystemAudioClipRepository(AUDIO_STORAGE_PATH)
-
-# initialize use case
-store_audio_use_case = StoreAudioUseCase(audio_repository)
+def get_store_audio_use_case():
+    """Dependency provider for StoreAudioUseCase"""
+    return container.get_store_audio_use_case()
 
 @router.post("/audio")
-async def upload_audio(file: UploadFile = File(...)):
+async def upload_audio(
+    file: UploadFile = File(...),
+    use_case: StoreAudioUseCase = Depends(get_store_audio_use_case)
+):
     """
     Upload and store an audio file
     
@@ -30,7 +29,7 @@ async def upload_audio(file: UploadFile = File(...)):
         f.write(await file.read())
     
     # Store the audio file
-    clip = store_audio_use_case.execute(temp_filename)
+    clip = use_case.execute(temp_filename)
     
     # Return the clip ID to be used for transcription
     return {
@@ -39,9 +38,12 @@ async def upload_audio(file: UploadFile = File(...)):
     }
 
 @router.get("/audio/{clip_id}")
-async def get_audio(clip_id: str):
+async def get_audio(
+    clip_id: str,
+    use_case: StoreAudioUseCase = Depends(get_store_audio_use_case)
+):
     """Get audio clip information by ID"""
-    clip = store_audio_use_case.get_clip(clip_id)
+    clip = use_case.get_clip(clip_id)
     
     if not clip:
         raise HTTPException(status_code=404, detail="Audio clip not found")
@@ -49,9 +51,12 @@ async def get_audio(clip_id: str):
     return {"clip_id": str(clip.id), "file_path": clip.file_path}
 
 @router.delete("/audio/{clip_id}")
-async def delete_audio(clip_id: str):
+async def delete_audio(
+    clip_id: str,
+    use_case: StoreAudioUseCase = Depends(get_store_audio_use_case)
+):
     """Delete an audio clip by ID"""
-    success = store_audio_use_case.delete_clip(clip_id)
+    success = use_case.delete_clip(clip_id)
     
     if not success:
         raise HTTPException(status_code=404, detail="Audio clip not found or could not be deleted")

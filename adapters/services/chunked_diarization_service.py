@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pydub import AudioSegment, silence
 from pyannote.audio import Pipeline
 
-from domain.services import DiarizationService
+from domain.ports.diarization_port import DiarizationPort
 from domain.audio_clip import AudioClip
 from domain.speaker_segment import SpeakerSegment
 
@@ -50,7 +50,7 @@ def detect_chunks(
     
     return segments
 
-class ChunkedDiarizationService(DiarizationService):
+class ChunkedDiarizationService(DiarizationPort):
     def __init__(
         self, 
         pipeline: Pipeline, 

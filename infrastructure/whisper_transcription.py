@@ -1,6 +1,8 @@
 import os
 from faster_whisper import WhisperModel as FWWhisperModel
 import torch
+from config import WHISPER_MODEL
+_whisper_model_instance = None
 
 
 class WhisperModel:
@@ -36,3 +38,12 @@ class WhisperModel:
             "text": text,
         }
         return res
+
+def get_whisper_model():
+    """
+    Get or create the Whisper model instance (singleton pattern)
+    """
+    global _whisper_model_instance
+    if _whisper_model_instance is None:
+        _whisper_model_instance = WhisperModel(WHISPER_MODEL)
+    return _whisper_model_instance 
