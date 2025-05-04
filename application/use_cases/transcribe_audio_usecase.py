@@ -1,16 +1,17 @@
 from typing import AsyncGenerator
-from domain.services import DiarizationService, TranscriptionService
+from domain.ports.diarization_port import DiarizationPort
+from domain.ports.transcription_port import TranscriptionPort
 from domain.speaker_segment import SpeakerSegment
 from domain.repositories import AudioClipRepository, TranscriptionTextRepository
 
 
 class TranscribeAudioUseCase:
     def __init__(self, 
-                 chunked_diarization_service: DiarizationService,
-                 transcription_service: TranscriptionService,
+                 diarization_service: DiarizationPort,
+                 transcription_service: TranscriptionPort,
                  audio_repository: AudioClipRepository,
                  transcription_repository: TranscriptionTextRepository):
-        self.chunked_diarization_service = chunked_diarization_service
+        self.diarization_service = diarization_service
         self.transcription_service = transcription_service
         self.audio_repository = audio_repository
         self.transcription_repository = transcription_repository
@@ -25,7 +26,7 @@ class TranscribeAudioUseCase:
 
         try:
             # Try to use diarization service if available
-            segments = await self.chunked_diarization_service.diarize(clip)
+            segments = await self.diarization_service.diarize(clip)
 
             # Get transcription for each segment
             for seg in segments:

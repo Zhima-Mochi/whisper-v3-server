@@ -1,12 +1,12 @@
 import asyncio
 from typing import AsyncGenerator, List
 
-from domain.services import DiarizationService
+from domain.ports.diarization_port import DiarizationPort
 from domain.audio_clip import AudioClip
 from domain.speaker_segment import SpeakerSegment
 from pyannote.audio import Pipeline
 
-class PyannoteDiarizationService(DiarizationService):
+class PyannoteDiarizationService(DiarizationPort):
     def __init__(self, pipeline: Pipeline):
         self.pipeline = pipeline
         
