@@ -20,16 +20,26 @@ Powered by **Whisper** for speech-to-text and **Pyannote** for speaker segmentat
 
 ## 🏛️ Architecture Overview
 
-This project is structured according to **Domain-Driven Design (DDD)** and **Hexagonal Architecture**:
+This project implements a strict **Hexagonal Architecture** (Ports & Adapters) with **Domain-Driven Design**:
 
-| Layer | Responsibility |
-|:-----|:---------------|
-| **Domain** | Core business rules and entities, fully independent. |
-| **Application** | Coordinates use cases by orchestrating domain logic. |
-| **Adapters** | Interfaces connecting the application to the outside world (e.g., API, storage). |
-| **Infrastructure** | Technical implementations (e.g., audio file storage, model inference). |
+| Layer | Responsibility | Key Components |
+|:-----|:---------------|:--------------|
+| **Domain** | Core business entities, interfaces (ports), and business rules | `AudioClip`, `SpeakerSegment`, `TranscriptionText`, `DiarizationPort`, `TranscriptionPort` |
+| **Application** | Orchestrates use cases by combining domain logic | `TranscribeAudioUseCase`, `StoreAudioUseCase` |
+| **Adapters** | Input/output adapters implementing domain ports | Input: `FastAPI routers`, Output: `ChunkedDiarizationService`, `WhisperTranscriptionService` |
+| **Infrastructure** | Technical implementations and DI container | `DIContainer`, repository implementations, model providers |
 
-This separation ensures **testability**, **flexibility**, and **minimal technology coupling**.
+Key architectural concepts implemented:
+
+- **Dependency Inversion:** All dependencies flow inward toward the domain
+- **Dependency Injection:** Services injected via FastAPI's dependency system
+- **Ports & Adapters:** Clean separation through interfaces (ports) and implementations (adapters)
+- **Single Responsibility:** Each component has exactly one reason to change
+
+This structure enables:
+- ✅ **Testability:** Mock any external system through port interfaces
+- ✅ **Maintainability:** Change implementations without affecting business logic
+- ✅ **Flexibility:** Swap out infrastructure components with minimal impact
 
 ---
 
@@ -57,7 +67,7 @@ This separation ensures **testability**, **flexibility**, and **minimal technolo
     ```
     Edit `.env` and add your Hugging Face token:
     ```dotenv
-    HUGGINGFACE_TOKEN=hf_YOUR_SECRET_TOKEN
+    HUGGINGFACE_AUTH_TOKEN=hf_YOUR_SECRET_TOKEN
     ```
 
 3. **Install dependencies:**
@@ -83,7 +93,7 @@ This separation ensures **testability**, **flexibility**, and **minimal technolo
 2. **Run the container:**
     ```bash
     docker run -p 8000:8000 \
-        -e HUGGINGFACE_TOKEN=your_token_here \
+        -e HUGGINGFACE_AUTH_TOKEN=your_token_here \
         -v $(pwd)/audio_data:/tmp/whisper_v3_server_storage \
         --name whisper-v3-server \
         whisper-v3-server
@@ -96,47 +106,50 @@ This separation ensures **testability**, **flexibility**, and **minimal technolo
 
 All endpoints are under `/api`.
 
----
+### Audio Management
 
-### 1. Upload Audio
+| Method | Endpoint | Description |
+|:-------|:---------|:------------|
+| `POST` | `/api/audio` | Upload audio file and receive `clip_id` |
+| `GET` | `/api/audio/{clip_id}` | Get information about a stored audio clip |
+| `DELETE` | `/api/audio/{clip_id}` | Delete an audio clip and its transcription |
 
-- **POST /api/audio**
-- Upload an audio file (`wav`, `mp3`) for processing.
-- **Response:**
-    ```json
+### Transcription & Diarization
+
+| Method | Endpoint | Description |
+|:-------|:---------|:------------|
+| `POST` | `/api/transcribe?clip_id={clip_id}` | Process audio with transcription & diarization |
+| `POST` | `/api/transcribe/stream?clip_id={clip_id}` | Stream results as they're processed |
+| `GET` | `/api/transcription/{clip_id}` | Get stored transcription results |
+| `GET` | `/api/transcription/stream/{clip_id}` | Stream stored transcription results |
+| `DELETE` | `/api/transcription/{clip_id}` | Delete transcription for a clip |
+
+### Example Responses
+
+**Upload Audio**
+```json
+{
+  "clip_id": "550e8400-e29b-41d4-a716-446655440000",
+  "message": "File uploaded successfully. Use this clip_id with the /api/transcribe endpoint."
+}
+```
+
+**Transcribe Audio**
+```json
+{
+  "segments": [
     {
-      "clip_id": "uuid",
-      "message": "File uploaded successfully.",
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "audio_clip_id": "550e8400-e29b-41d4-a716-446655440000",
+      "start": 0.0,
+      "end": 2.5,
+      "speaker_label": "SPEAKER_01",
+      "text": "Hello, how are you today?"
     }
-    ```
-
----
-
-### 2. Transcribe Audio
-
-- **POST /api/transcribe?clip_id={clip_id}**
-- Triggers transcription and diarization.
-- **Response:**
-    ```json
-    {
-      "segments": [
-        {
-          "speaker": "SPEAKER_01",
-          "start": 0.0,
-          "end": 2.5,
-          "text": "Hello, how are you today?"
-        }
-        // ...
-      ]
-    }
-    ```
-
----
-
-### 3. Manage Audio Files
-
-- **GET /api/audio/{clip_id}** → Fetch audio file info
-- **DELETE /api/audio/{clip_id}** → Delete stored audio
+    // Additional segments...
+  ]
+}
+```
 
 ---
 
@@ -146,12 +159,13 @@ Set via `.env` or environment variables:
 
 | Variable | Description | Default | Required |
 |:---------|:-------------|:--------|:--------|
-| `HUGGINGFACE_TOKEN` | Hugging Face token for Pyannote models | `None` | ✅ |
+| `HUGGINGFACE_AUTH_TOKEN` | Hugging Face token for Pyannote models | `None` | ✅ |
 | `PYANNOTE_MODEL` | Model path for speaker diarization | `pyannote/speaker-diarization` | |
 | `WHISPER_MODEL` | Model path for transcription | `openai/whisper-large-v3` | |
 | `AUDIO_STORAGE_PATH` | Path to store uploaded audio | `/tmp/whisper_v3_server_storage` | |
-| `DEVICE` | Device for inference (`cuda`, `cpu`, `mps`) | Auto-detect | |
-| `HF_HOME` | Cache path for Hugging Face | `~/.cache/huggingface` | |
+| `TRANSCRIPTION_STORAGE_PATH` | Path to store transcription results | `/tmp/whisper_v3_server_storage/transcription_texts` | |
+| `APP_HOST` | Host to bind the API server | `0.0.0.0` | |
+| `APP_PORT` | Port to bind the API server | `8000` | |
 
 ---
 
@@ -183,7 +197,7 @@ This project is licensed under the [MIT License](https://opensource.org/licenses
 | ⬜    | **8**    | **H-1~4** | **Dual-GPU management + Round-Robin** | Scan with NVML, create ModelPool per GPU, load-balanced GPU selection; support 2x 2060/3060 |
 | ⬜    | **9**    | **A-1** | **Single-step API**                 | Add `/upload+transcribe` endpoint with webhook callback; simplify client usage        |
 | ⬜    | **10**   | **H-5~6** | **Run Pyannote on GPU2 / parallel pipeline** | Load Pyannote on idle second GPU; true parallel speaker diarization + transcription   |
-| ⬜    | **11**   | **D-2** | **Incremental output algorithm**    | Only send “new words” to avoid flickering on frontend                                 |
+| ⬜    | **11**   | **D-2** | **Incremental output algorithm**    | Only send "new words" to avoid flickering on frontend                                 |
 | ⬜    | **12**   | **E-1** | **Dual-model real-time + accuracy** | Use tiny model for 0.5s partial, small model for 30s final → overwrite result         |
 | ⬜    | **13**   | **H-7~8** | **Batch inference & config-driven pipeline** | Batch=4 under high concurrency; move thresholds to `.env`                             |
 | ⬜    | **14**   | **F-2** | **Opus-compressed streaming**       | Frontend sends `ogg/opus`, backend handles decoding                                   |
