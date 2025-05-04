@@ -1,12 +1,16 @@
+from domain.repositories import TranscriptionTextRepository
+from domain.transcription_text import TranscriptionText
+import json
 import os
 import shutil
 import uuid
 from typing import Optional
 from domain.audio_clip import AudioClip
-from domain.repositories import AudioClipRepository
+from domain.repositories import TranscriptionTextRepository
+from domain.transcription_text import TranscriptionText
 
-class FileSystemAudioClipRepository(AudioClipRepository):
-    def __init__(self, base_dir: str = "/tmp/whisper_v3_server_storage"):
+class FileSystemTranscriptionTextRepositoryImpl(TranscriptionTextRepository):
+    def __init__(self, base_dir: str = "/tmp/whisper_v3_server_storage/transcription_texts"):
         """Initialize storage with a permanent directory for audio files."""
         self.base_dir = base_dir
         os.makedirs(base_dir, exist_ok=True)
@@ -14,33 +18,31 @@ class FileSystemAudioClipRepository(AudioClipRepository):
         # In a real app, this would be a database
         self.clips = {}
         
-    def save(self, clip: AudioClip) -> AudioClip:
+    def save(self, clip_id: str, texts: list[TranscriptionText]) -> list[TranscriptionText]:
         """
-        Save the audio clip to permanent storage.
+        Save the transcription text to permanent storage.
         Creates a copy of the file in the storage directory.
         Returns the updated clip with the new file path.
         """
         # Generate a unique filename
-        filename = f"{str(clip.id)}{os.path.splitext(clip.file_path)[1]}"
+        filename = f"{clip_id}.json"
         destination = os.path.join(self.base_dir, filename)
         
         # Copy the file to storage
         try:
-            shutil.copy2(clip.file_path, destination)
-            
-            # Update the clip's file path to point to stored location
-            clip.file_path = destination
+            with open(destination, 'w') as f:
+                json.dump(texts, f)
             
             # Store in our in-memory repository
-            self.clips[str(clip.id)] = clip
+            self.clips[str(clip_id)] = texts
             
-            return clip
+            return texts
         except Exception as e:
             print(f"Error saving audio file: {str(e)}")
             # If copying fails, keep original path
-            return clip
+            return texts
         
-    def get(self, clip_id) -> Optional[AudioClip]:
+    def list(self, clip_id) -> Optional[list[TranscriptionText]]:
         """
         Retrieve a clip by ID.
         Returns None if clip is not found.

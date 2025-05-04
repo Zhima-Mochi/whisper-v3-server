@@ -75,12 +75,12 @@ class TranscribeAudioUseCase:
             return transcription
 
         # If no transcription exists, get the audio clip
-        audio = self.audio_repository.get(clip_id)
-        if not audio:
+        audio_clip = self.audio_repository.get(clip_id)
+        if not audio_clip:
             raise ValueError(f"Audio clip {clip_id} not found")
 
         # Transcribe the audio
-        segments = await self.execute(audio.file_path)
+        segments = await self.execute(audio_clip.file_path)
 
         # Save the transcription
         self.transcription_repository.save(clip_id, segments)
@@ -119,7 +119,7 @@ class TranscribeAudioUseCase:
 
         try:
             # Stream diarization segments
-            async for seg in self.chunked_diarization_service.diarize_stream(clip):
+            async for seg in self.diarization_service.diarize_stream(clip):
                 # Collect all text chunks into a single string
                 text_chunks = []
                 async for chunk in self.transcription_service.transcribe_stream(

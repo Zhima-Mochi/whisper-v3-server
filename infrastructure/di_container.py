@@ -7,11 +7,10 @@ from adapters.services.whisper_transcription_service import WhisperTranscription
 from application.use_cases.transcribe_audio_usecase import TranscribeAudioUseCase
 from infrastructure.whisper_transcription import get_whisper_model
 from infrastructure.pyannote_diarization import load_pyannote_pipeline
-from infrastructure.repositories.audio_clip_repository_impl import AudioClipRepositoryImpl
-from infrastructure.repositories.speaker_segment_repository_impl import SpeakerSegmentRepositoryImpl
-from infrastructure.repositories.transcription_text_repository_impl import TranscriptionTextRepositoryImpl
-from infrastructure.audio_storage import FileSystemAudioClipRepository
-from config import AUDIO_STORAGE_PATH, PYANNOTE_MODEL
+from infrastructure.repositories.audio_repository_impl import FileSystemAudioClipRepositoryImpl
+from infrastructure.repositories.transcription_repository_impl import FileSystemTranscriptionTextRepositoryImpl
+from config import AUDIO_STORAGE_PATH, PYANNOTE_MODEL, TRANSCRIPTION_STORAGE_PATH
+from domain.repositories import *
 
 class DIContainer:
     """
@@ -24,8 +23,8 @@ class DIContainer:
         self._testing_mode = False
 
         # Static services (no need to delay)
-        self._services[SpeakerSegmentRepositoryImpl] = SpeakerSegmentRepositoryImpl()
-        self._services[TranscriptionTextRepositoryImpl] = TranscriptionTextRepositoryImpl()
+        self._services[TranscriptionTextRepository] = FileSystemTranscriptionTextRepositoryImpl(TRANSCRIPTION_STORAGE_PATH)
+        self._services[AudioClipRepository] = FileSystemAudioClipRepositoryImpl(AUDIO_STORAGE_PATH) 
     
     def set_testing_mode(self, is_testing: bool):
         """
@@ -33,7 +32,11 @@ class DIContainer:
         fake implementations will be used instead of real ones.
         """
         self._testing_mode = is_testing
-        self._services = {}
+        if is_testing:
+            self._services = {}
+        else:
+            self._services[TranscriptionTextRepository] = FileSystemTranscriptionTextRepositoryImpl(TRANSCRIPTION_STORAGE_PATH)
+            self._services[AudioClipRepository] = FileSystemAudioClipRepositoryImpl(AUDIO_STORAGE_PATH)
 
     def get_diarization_service(self) -> DiarizationPort:
         """
@@ -63,15 +66,21 @@ class DIContainer:
         return TranscribeAudioUseCase(
             diarization_service=self.get_diarization_service(),
             transcription_service=self.get_transcription_service(),
-            audio_clip_repository=self.get_audio_clip_repository(),
-            transcription_text_repository=self._services[TranscriptionTextRepositoryImpl]
+            audio_repository=self.get_audio_repository(),
+            transcription_repository=self.get_transcription_repository()
         )
 
-    def get_audio_clip_repository(self):
+    def get_audio_repository(self):
         """
         Get an implementation of the AudioClipRepository.
         """
-        return FileSystemAudioClipRepository(AUDIO_STORAGE_PATH)
+        return self._services[AudioClipRepository]
+    
+    def get_transcription_repository(self):
+        """
+        Get an implementation of the TranscriptionTextRepository.
+        """
+        return self._services[TranscriptionTextRepository]
 
 # Singleton instance
 container = DIContainer() 
