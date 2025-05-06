@@ -6,9 +6,19 @@ from domain.ports.diarization_port import DiarizationPort
 from domain.audio_clip import AudioClip
 from domain.speaker_segment import SpeakerSegment
 
-class FakeDiarizationService(DiarizationPort):
+"""
+Fake outbound adapter for diarization used in testing.
+
+In hexagonal architecture:
+- Outbound adapters implement ports defined by the domain
+- This fake adapter is useful for testing without real dependencies
+- It should have a domain-focused name that describes its role
+- We use 'Adapter' suffix to clarify its architectural role
+"""
+
+class FakeDiarizationAdapter(DiarizationPort):
     """
-    Fake implementation of the DiarizationPort for testing purposes.
+    A fake implementation of the DiarizationPort for testing purposes.
     Returns predefined speaker segments without actual audio processing.
     """
     
@@ -17,7 +27,7 @@ class FakeDiarizationService(DiarizationPort):
                  total_duration: float = 30.0,
                  num_speakers: int = 2):
         """
-        Initialize the fake diarization service.
+        Initialize the fake diarization adapter.
         
         Args:
             segment_duration: Duration of each segment in seconds
@@ -27,18 +37,6 @@ class FakeDiarizationService(DiarizationPort):
         self.segment_duration = segment_duration
         self.total_duration = total_duration
         self.num_speakers = num_speakers
-    
-    async def diarize(self, clip: AudioClip) -> List[SpeakerSegment]:
-        """
-        Return predefined speaker segments.
-        
-        Args:
-            clip: The audio clip to process (ignored in fake implementation)
-            
-        Returns:
-            List of speaker segments with timing information
-        """
-        return [segment async for segment in self.diarize_stream(clip)]
     
     async def diarize_stream(self, clip: AudioClip) -> AsyncGenerator[SpeakerSegment, None]:
         """
@@ -67,4 +65,4 @@ class FakeDiarizationService(DiarizationPort):
             await asyncio.sleep(0.05)
             
             yield segment
-            current_time = end_time 
+            current_time = end_time

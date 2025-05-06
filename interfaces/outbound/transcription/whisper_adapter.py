@@ -4,22 +4,25 @@ from domain.audio_clip import AudioClip
 import os
 from shared.utils.audio_converter import convert_to_wav
 from pydub import AudioSegment
-from infrastructure.whisper_transcription import WhisperModel
+from interfaces.outbound.transcription.whisper_model import WhisperModel
 
 
-class WhisperTranscriptionService(TranscriptionPort):
+class WhisperAdapter(TranscriptionPort):
+    """
+    WhisperAdapter is an outbound adapter that implements the TranscriptionPort interface.
+    It uses the WhisperModel to transcribe audio clips.
+    """
     def __init__(self, model: WhisperModel):
         self.model = model
-
+        
     async def transcribe(self, clip: AudioClip, start: float, end: float) -> str:
         """
-        Transcribe audio segment from start to end time.
-        If start and end times are specified, extracts the segment before transcription.
+        Transcribe an audio clip.
         """
         segments = []
         async for segment in self.transcribe_stream(clip, start, end):
             segments.append(segment)
-        return " ".join(segments)
+        return segments
 
     async def transcribe_stream(self, clip: AudioClip, start: float, end: float) -> AsyncGenerator[str, None]:
         """
@@ -81,4 +84,4 @@ class WhisperTranscriptionService(TranscriptionPort):
 
         except Exception as e:
             # Log error and return empty generator
-            print(f"Error transcribing audio: {str(e)}")
+            print(f"Error transcribing audio: {str(e)}") 

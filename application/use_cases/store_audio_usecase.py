@@ -15,18 +15,20 @@ class StoreAudioUseCase:
         """
         self.audio_repository = audio_repository
 
-    def execute(self, file_path: str) -> AudioClip:
+    def execute(self, title: str, filename: str, content: bytes) -> AudioClip:
         """
         Store an audio file and return the audio clip object
 
         Args:
-            file_path: Path to the audio file to store
+            title: Title of the audio clip
+            filename: Filename of the audio clip
+            content: Content of the audio clip
 
         Returns:
             AudioClip: The stored audio clip with its ID
         """
         # Create an audio clip
-        clip = AudioClip(file_path=file_path)
+        clip = AudioClip(title=title, filename=filename, content=content)
         clip.id = uuid4()  # Generate a new ID
 
         # Save it to the repository

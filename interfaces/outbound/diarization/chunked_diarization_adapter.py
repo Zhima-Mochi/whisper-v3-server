@@ -50,7 +50,21 @@ def detect_chunks(
     
     return segments
 
-class ChunkedDiarizationService(DiarizationPort):
+class ChunkedDiarizationAdapter(DiarizationPort):
+    """
+    Adapter implementation of the DiarizationPort interface that processes audio in chunks.
+    
+    In hexagonal architecture:
+    - This adapter belongs in the infrastructure layer
+    - It implements a domain port (DiarizationPort)
+    - It depends on infrastructure components (Pyannote Pipeline)
+    - The application layer only knows about the port interface, not this implementation
+    
+    Note the naming convention:
+    - We use a domain-focused name ("ChunkedDiarization") that describes the capability
+    - We append "Adapter" to clarify its role in the architecture
+    - Technical details (Pyannote) are contained in the implementation, not the class name
+    """
     def __init__(
         self, 
         pipeline: Pipeline, 
@@ -61,7 +75,7 @@ class ChunkedDiarizationService(DiarizationPort):
         temp_dir: str = None
     ):
         """
-        Initialize chunked diarization service.
+        Initialize chunked diarization adapter.
         
         Args:
             pipeline: Pyannote pipeline for speaker diarization
@@ -77,6 +91,13 @@ class ChunkedDiarizationService(DiarizationPort):
         self.min_chunk_duration = min_chunk_duration
         self.max_workers = max_workers
         self.temp_dir = temp_dir
+        
+    async def diarize(self, clip: AudioClip) -> List[SpeakerSegment]:
+        """
+        Diarize the audio clip and return a list of speaker segments.
+        """
+        segments = [seg async for seg in self.diarize_stream(clip)]
+        return segments
 
     async def _process_chunk(
         self, 
@@ -121,13 +142,6 @@ class ChunkedDiarizationService(DiarizationPort):
                 # Clean up temporary file
                 if os.path.exists(tmp.name):
                     os.remove(tmp.name)
-    
-    async def diarize(self, clip: AudioClip) -> List[SpeakerSegment]:
-        """
-        Diarize the audio clip and return a list of speaker segments.
-        """
-        segments = [seg async for seg in self.diarize_stream(clip)]
-        return segments
 
     async def diarize_stream(self, clip: AudioClip) -> AsyncGenerator[SpeakerSegment, None]:
         """

@@ -1,9 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-from adapters.input.transcribe_router import router as transcribe_router
-from adapters.input.audio_router import router as audio_router
+from interfaces.inbound.rest.audio_controller import AudioController
+from interfaces.inbound.rest.transcription_controller import TranscriptionController
+from composition_root.container import Container
 from config import APP_HOST, APP_PORT
-from infrastructure.di_container import container
 import logging
 
 # Configure logging
@@ -11,9 +11,13 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Whisper-v3 Server")
+container = Container()
+
+# Initialize controllers
+audio_controller = AudioController(container.store_audio_usecase)
+transcription_controller = TranscriptionController(container.transcribe_audio_usecase)
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,36 +27,39 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(transcribe_router, prefix="/api")
-app.include_router(audio_router, prefix="/api")
+router = APIRouter(prefix="/api")
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize application dependencies on startup"""
-    logger.info("Starting application and initializing container...")
-    
-    # Set the container to production mode
-    container.set_testing_mode(False)
-    
-    # Pre-initialize common services to avoid cold starts
-    try:
-        logger.info("Pre-initializing transcription service...")
-        container.get_transcription_service()
-        
-        logger.info("Pre-initializing diarization service...")
-        container.get_diarization_service()
-        
-        logger.info("All services initialized successfully")
-    except Exception as e:
-        logger.error(f"Error initializing services: {str(e)}")
-        # Continue starting the app even if service initialization fails
-        # The services will be initialized on first request
+# Audio endpoints
+@router.post("/audio")
+async def upload_audio(file: UploadFile = File(...)):
+    return await audio_controller.upload_audio(file)
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Clean up resources on application shutdown"""
-    logger.info("Shutting down application...")
-    # Any cleanup code can go here
+@router.get("/audio/{clip_id}")
+async def get_audio(clip_id: str):
+    return await audio_controller.get_audio(clip_id)
+
+@router.delete("/audio/{clip_id}")
+async def delete_audio(clip_id: str):
+    return await audio_controller.delete_audio(clip_id)
+
+# Transcription endpoints
+@router.post("/transcribe/{clip_id}")
+async def transcribe_audio(clip_id: str):
+    return await transcription_controller.transcribe_audio(clip_id)
+
+@router.get("/transcribe/{clip_id}")
+async def get_transcription(clip_id: str):
+    return await transcription_controller.get_transcription(clip_id)
+
+@router.delete("/transcribe/{clip_id}")
+async def delete_transcription(clip_id: str):
+    return await transcription_controller.delete_transcription(clip_id)
+
+@router.get("/transcribe/{clip_id}/stream")
+async def stream_transcription(clip_id: str):
+    return await transcription_controller.stream_transcription(clip_id)
+
+app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn

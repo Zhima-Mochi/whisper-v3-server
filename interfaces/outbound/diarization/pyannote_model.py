@@ -1,7 +1,7 @@
 from pyannote.audio import Pipeline
 from config import HUGGINGFACE_AUTH_TOKEN
 
-_pyannote_pipeline_instance = None
+_pyannote_pipeline = None
 
 def load_pyannote_pipeline(model_name):
     """
@@ -13,10 +13,10 @@ def load_pyannote_pipeline(model_name):
     Returns:
         An instance of pyannote Pipeline
     """
-    global _pyannote_pipeline_instance
-    if _pyannote_pipeline_instance is None:
-        _pyannote_pipeline_instance = Pipeline.from_pretrained(
+    global _pyannote_pipeline
+    if _pyannote_pipeline is None:
+        _pyannote_pipeline = Pipeline.from_pretrained(
             model_name,
             use_auth_token=HUGGINGFACE_AUTH_TOKEN
         )
-    return _pyannote_pipeline_instance
+    return _pyannote_pipeline
