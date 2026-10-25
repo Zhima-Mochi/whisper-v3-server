@@ -1,3 +1,4 @@
+import json
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from application.use_cases.transcribe_audio_usecase import TranscribeAudioUseCase
@@ -59,22 +60,16 @@ class TranscriptionController:
             raise HTTPException(status_code=500, detail=str(e))
 
     async def stream_transcription(self, clip_id: str):
-        """Stream transcription results"""
-        try:
-            async def generate():
-                async for segment in self.transcribe_audio_usecase.get_or_transcribe_streaming(clip_id):
-                    yield f"data: {{\n"
-                    yield f'  "start": {segment.start},\n'
-                    yield f'  "end": {segment.end},\n'
-                    yield f'  "speaker": "{segment.speaker_label}",\n'
-                    yield f'  "text": "{segment.text}"\n'
-                    yield "}\n\n"
+        """Serialize every segment into one valid SSE JSON event."""
+        async def generate():
+            async for segment in self.transcribe_audio_usecase.get_or_transcribe_streaming(clip_id):
+                payload = {
+                    "start": segment.start,
+                    "end": segment.end,
+                    "speaker": segment.speaker_label,
+                    "text": segment.text,
+                }
+                # JSON escaping prevents quotes/newlines in model output from injecting SSE frames.
+                yield "data: " + json.dumps(payload, ensure_ascii=False) + "\n\n"
 
-            return StreamingResponse(
-                generate(),
-                media_type="text/event-stream"
-            )
-        except ValueError as e:
-            raise HTTPException(status_code=404, detail=str(e))
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e)) 
+        return StreamingResponse(generate(), media_type="text/event-stream")
