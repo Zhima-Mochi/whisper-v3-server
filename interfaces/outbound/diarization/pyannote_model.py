@@ -17,6 +17,6 @@ def load_pyannote_pipeline(model_name):
     if _pyannote_pipeline is None:
         _pyannote_pipeline = Pipeline.from_pretrained(
             model_name,
-            use_auth_token=HUGGINGFACE_AUTH_TOKEN
+            token=HUGGINGFACE_AUTH_TOKEN
         )
     return _pyannote_pipeline

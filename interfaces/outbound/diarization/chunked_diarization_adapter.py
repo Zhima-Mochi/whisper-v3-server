@@ -118,7 +118,7 @@ class ChunkedDiarizationAdapter(DiarizationPort):
             try:
                 # Extract and export the chunk
                 chunk_audio = audio_segment[int(chunk_start*1000):int(chunk_end*1000)]
-                chunk_audio.export(tmp.name, format="wav")
+                chunk_audio.export(tmp.name, format="wav").close()
                 
                 # Run the pipeline
                 loop = asyncio.get_running_loop()
@@ -126,6 +126,9 @@ class ChunkedDiarizationAdapter(DiarizationPort):
                     None, 
                     lambda: self.pipeline({"audio": tmp.name})
                 )
+
+                # pyannote 4 wraps the annotation in a DiarizeOutput object.
+                diarization = getattr(diarization, "speaker_diarization", diarization)
 
                 # Create speaker segments with adjusted timestamps
                 for turn, _, speaker in diarization.itertracks(yield_label=True):
@@ -189,4 +192,4 @@ class ChunkedDiarizationAdapter(DiarizationPort):
         except Exception as e:
             # Handle any unexpected errors
             print(f"Error in diarize_stream: {e}")
-            raise 
+            raise

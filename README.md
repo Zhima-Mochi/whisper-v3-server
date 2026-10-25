@@ -47,9 +47,10 @@ This structure enables:
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.12
+- FFmpeg (including shared libraries) for audio decoding
 - [Poetry](https://python-poetry.org/) for dependency management
-- A Hugging Face account and API Token (required for Pyannote models)
+- A Hugging Face account and API Token (required for Pyannote models). Accept the [community-1 model terms](https://huggingface.co/pyannote/speaker-diarization-community-1) before starting the server.
 
 ---
 
@@ -69,10 +70,13 @@ This structure enables:
     ```dotenv
     HUGGINGFACE_AUTH_TOKEN=hf_YOUR_SECRET_TOKEN
     ```
+    When upgrading an existing installation, also update `PYANNOTE_MODEL` in
+    `.env` to `pyannote/speaker-diarization-community-1` and accept its model terms.
 
 3. **Install dependencies:**
     ```bash
-    poetry install
+    poetry env use python3.12
+    poetry install --no-root
     ```
 
 4. **Run the application:**
@@ -80,6 +84,11 @@ This structure enables:
     poetry run uvicorn app:app --reload --host 0.0.0.0 --port 8000
     ```
     ➔ API available at `http://localhost:8000`
+
+    To run the upload and diarization compatibility tests without downloading models:
+    ```bash
+    poetry run python -m unittest discover -s tests -v
+    ```
 
 ---
 
@@ -160,7 +169,7 @@ Set via `.env` or environment variables:
 | Variable | Description | Default | Required |
 |:---------|:-------------|:--------|:--------|
 | `HUGGINGFACE_AUTH_TOKEN` | Hugging Face token for Pyannote models | `None` | ✅ |
-| `PYANNOTE_MODEL` | Model path for speaker diarization | `pyannote/speaker-diarization` | |
+| `PYANNOTE_MODEL` | Model path for speaker diarization | `pyannote/speaker-diarization-community-1` | |
 | `WHISPER_MODEL` | Model path for transcription | `openai/whisper-large-v3` | |
 | `AUDIO_STORAGE_PATH` | Path to store uploaded audio | `/tmp/whisper_v3_server_storage` | |
 | `TRANSCRIPTION_STORAGE_PATH` | Path to store transcription results | `/tmp/whisper_v3_server_storage/transcription_texts` | |
